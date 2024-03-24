@@ -1,0 +1,52 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "c:/Users/harun/Projects/cmpe382/**",
+                "/usr/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22000.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerPathInCppPropertiesJson": "cl.exe",
+            "mergeConfigurations": false,
+            "browse": {
+                "path": [
+                    "c:/Users/harun/Projects/cmpe382/**",
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/lib/gcc/x86_64-linux-gnu/11/include",
+                "/usr/local/include",
+                "/usr/include/x86_64-linux-gnu",
+                "/usr/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22000.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerArgs": []
+        }
+    ],
+    "version": 4
+}
