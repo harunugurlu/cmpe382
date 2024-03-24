@@ -9,6 +9,9 @@ int nrDigits(int);
 int isPrime(int);
 void nrPrimes(int num, int* num_primes);
 
+// TODO: sleep yokken bile varmis gibi davraniyor ve txt dosyasinin eski halini kullaniyor. 
+// TODO: implement isPrime
+
 int main() {
     // Process id
     pid_t pid1;
