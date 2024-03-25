@@ -94,22 +94,18 @@ int main() {
                 // read() does not add a null terminator '\0' at the end of the buffer, so manually adding it.
                 number_str[index] = '\0';
 
-                // printf("read the number: %s", number_str);
-
                 int number_int = atoi(number_str);
                 num_count++;
+
+                int write_number = write(fd_p1_p3[1], &number_int, sizeof(int));
+                int write_number2 = write(fd_p1_p2[1], &number_int, sizeof(int));
 
                 if(read_num_bytes == 0) {
                     number_int = -1;
                     write(fd_p1_p3[1], &number_int, sizeof(int));
                     write(fd_p1_p2[1], &number_int, sizeof(int));
-                    printf("end of the file %s\n", number_str);
                     break;
                 }
-
-                int write_number = write(fd_p1_p3[1], &number_int, sizeof(int));
-                int write_number2 = write(fd_p1_p2[1], &number_int, sizeof(int));
-
 
                 if(write_number == -1 || write_number2 == -1) {
                     perror("P1 parent write error");
@@ -121,7 +117,16 @@ int main() {
             }
             // Wait for P3 to finish
             waitpid(pid1, NULL, 0);
+
+            int num_by_digits[5] = {0};
+
             
+            read(fd_p2_p1[0], num_by_digits, sizeof(num_by_digits));
+
+            for(int i = 0; i < 5; i++) {
+                printf("%d digits - %d\n", (i+1), num_by_digits[i]);
+            }
+
             waitpid(pid2, NULL, 0);
             
             int num_primes = 0;
@@ -147,14 +152,11 @@ int main() {
                     return EXIT_FAILURE;
                 }
                 if(num == -1) {
-                    //printf("P3 end of file\n");
                     break;
                 }
-                //printf("P3 child received number --> %d\n", num);
+
                 nrPrimes(num, &num_primes);
             }
-
-            printf("Prime numbers: %d\n", num_primes);
 
             int write_number = write(fd_p3_p1[1], &num_primes, sizeof(int));
             if(write_number == -1) {
@@ -168,6 +170,8 @@ int main() {
         close(fd_p1_p2[1]);
         close(fd_p2_p1[0]);
 
+        int num_by_digits[5] = {0};
+
          while(1) {
                 int num = 0;
 
@@ -178,18 +182,51 @@ int main() {
                     return EXIT_FAILURE;
                 }
                 if(num == -1) {
-                    //printf("P3 end of file\n");
                     break;
                 }
-                printf("P2 child received number --> %d\n", num);
+
+                int nr_digits = nrDigits(num);
+
+                switch(nr_digits) {
+                    case 1:
+                    num_by_digits[0] += 1;
+                    break;
+                    case 2:
+                    num_by_digits[1] += 1;
+                    break;
+                    case 3:
+                    num_by_digits[2] += 1;
+                    break;
+                    case 4:
+                    num_by_digits[3] += 1;
+                    break;
+                    case 5:
+                    num_by_digits[4] += 1;
+                    break;
+                }
+
             }
+
+            int write_number = write(fd_p2_p1[1], num_by_digits, sizeof(num_by_digits));
+            if(write_number == -1) {
+                perror("P3 child write error");
+                return EXIT_FAILURE;
+            }  
     }
 
     return EXIT_SUCCESS;
 }
 
 int nrDigits(int num) {
+    if (num == 0) return 1;
 
+    int nr_digits = 0;
+    while (num != 0) {
+        num /= 10;
+        nr_digits++;
+    }
+
+    return nr_digits;
 }
 
 int isPrime(int num) {
