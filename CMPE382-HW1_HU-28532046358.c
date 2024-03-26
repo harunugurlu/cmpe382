@@ -38,6 +38,8 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    printf("Input file: %s\n", argv[1]);
+
     // Creating the first child
     pid1 = fork();
 
