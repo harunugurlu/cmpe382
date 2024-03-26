@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
+// Constants
+#define MAX_DIGITS 5
+#define END_OF_INPUT -1
+
+
 int nrDigits(int);
 int isPrime(int);
 void nrPrimes(int num, int* num_primes);
@@ -105,13 +110,14 @@ int main(int argc, char* argv[]) {
                 }
 
                 if(read_num_bytes == 0) {
-                    number_int = -1;
+                    number_int = END_OF_INPUT;
                     int write_eof = write(fd_p1_p3[1], &number_int, sizeof(int));
                     int write_eof2 = write(fd_p1_p2[1], &number_int, sizeof(int));
                     if(write_eof == -1 || write_eof2 == -1) {
                         perror("P1 parent write error");
                         return EXIT_FAILURE;
                     }
+                    close(fd_numbers);
                     break;
                 }
             }
@@ -130,7 +136,7 @@ int main(int argc, char* argv[]) {
                 return EXIT_FAILURE;
             }
 
-            int num_by_digits[5] = {0};
+            int num_by_digits[MAX_DIGITS] = {0};
 
             
             int read_p2 = read(fd_p2_p1[0], num_by_digits, sizeof(num_by_digits));
@@ -139,7 +145,7 @@ int main(int argc, char* argv[]) {
                 return EXIT_FAILURE;
             }
 
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < MAX_DIGITS; i++) {
                 printf("%d digits - %d\n", (i+1), num_by_digits[i]);
                 dprintf(fd_output, "%d digits - %d\n", (i+1), num_by_digits[i]);
             }
@@ -180,7 +186,7 @@ int main(int argc, char* argv[]) {
                     perror("P3 read pipe error");
                     return EXIT_FAILURE;
                 }
-                if(num == -1) {
+                if(num == END_OF_INPUT) {
                     break;
                 }
 
@@ -199,7 +205,7 @@ int main(int argc, char* argv[]) {
         close(fd_p1_p2[1]);
         close(fd_p2_p1[0]);
 
-        int num_by_digits[5] = {0};
+        int num_by_digits[MAX_DIGITS] = {0};
 
          while(1) {
                 int num = 0;
@@ -210,7 +216,7 @@ int main(int argc, char* argv[]) {
                     perror("P3 read pipe error");
                     return EXIT_FAILURE;
                 }
-                if(num == -1) {
+                if(num == END_OF_INPUT) {
                     break;
                 }
 
