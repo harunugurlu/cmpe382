@@ -84,7 +84,6 @@ int main(int argc, char* argv[]) {
                     }
                     // End of the file
                     else if(read_num_bytes == 0) {
-                        // printf("End of the file\n");
                         break;
                     }
 
