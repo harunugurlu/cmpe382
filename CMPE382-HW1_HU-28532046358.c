@@ -9,8 +9,9 @@
 int nrDigits(int);
 int isPrime(int);
 void nrPrimes(int num, int* num_primes);
+void nrDigitsResult(int nr_digits, int* num_by_digits);
 
-int main() {
+int main(int argc, char* argv[]) {
     // Process id
     pid_t pid1;
     pid_t pid2;
@@ -50,7 +51,7 @@ int main() {
         }
         // In the P1 parent process
         if(pid2 > 0) {
-            int fd_numbers = open("numbers.txt", O_RDONLY);
+            int fd_numbers = open(argv[1], O_RDONLY);
 
             if(fd_numbers == -1) {
                 perror("error opening the file\n");
@@ -86,8 +87,7 @@ int main() {
                     index++;
 
                     if(single_char == '\n')
-                        break;
-                    
+                        break; 
                 }
                 // End of the file
 
@@ -99,47 +99,64 @@ int main() {
 
                 int write_number = write(fd_p1_p3[1], &number_int, sizeof(int));
                 int write_number2 = write(fd_p1_p2[1], &number_int, sizeof(int));
-
-                if(read_num_bytes == 0) {
-                    number_int = -1;
-                    write(fd_p1_p3[1], &number_int, sizeof(int));
-                    write(fd_p1_p2[1], &number_int, sizeof(int));
-                    break;
-                }
-
                 if(write_number == -1 || write_number2 == -1) {
                     perror("P1 parent write error");
                     return EXIT_FAILURE;
                 }
 
-                // sleep(1);
-
+                if(read_num_bytes == 0) {
+                    number_int = -1;
+                    int write_eof = write(fd_p1_p3[1], &number_int, sizeof(int));
+                    int write_eof2 = write(fd_p1_p2[1], &number_int, sizeof(int));
+                    if(write_eof == -1 || write_eof2 == -1) {
+                        perror("P1 parent write error");
+                        return EXIT_FAILURE;
+                    }
+                    break;
+                }
             }
 
+            // Create the output file with write mode
             int fd_output = open("output.txt", O_CREAT | O_WRONLY, 0644);
-
             if(fd_output == -1) {
                 perror("P1 parent error creating the output file");
                 return EXIT_FAILURE;
             }
 
             // Wait for P3 to finish
-            waitpid(pid1, NULL, 0);
+            pid_t wait_pid = waitpid(pid1, NULL, 0);
+            if(wait_pid == -1) {
+                fprintf(stderr, "error waitpid for process %d\n", pid1);
+                return EXIT_FAILURE;
+            }
 
             int num_by_digits[5] = {0};
 
             
-            read(fd_p2_p1[0], num_by_digits, sizeof(num_by_digits));
+            int read_p2 = read(fd_p2_p1[0], num_by_digits, sizeof(num_by_digits));
+            if(read_p2 == -1) {
+                perror("P1 parent read from P2 error");
+                return EXIT_FAILURE;
+            }
 
             for(int i = 0; i < 5; i++) {
                 printf("%d digits - %d\n", (i+1), num_by_digits[i]);
                 dprintf(fd_output, "%d digits - %d\n", (i+1), num_by_digits[i]);
             }
 
-            waitpid(pid2, NULL, 0);
+            // Wait for P2 to finish
+            pid_t wait_pid2 = waitpid(pid2, NULL, 0);
+            if(wait_pid2 == -1) {
+                fprintf(stderr, "error waitpid for process %d\n", pid2);
+                return EXIT_FAILURE;
+            }
             
             int num_primes = 0;
-            read(fd_p3_p1[0], &num_primes, sizeof(int));
+            int read_p3 = read(fd_p3_p1[0], &num_primes, sizeof(int));
+            if(read_p3 == -1) {
+                perror("P1 parent read from P3 error");
+                return EXIT_FAILURE;
+            }
 
             int num_non_primes = num_count - num_primes;
             
@@ -199,24 +216,7 @@ int main() {
 
                 int nr_digits = nrDigits(num);
 
-                switch(nr_digits) {
-                    case 1:
-                    num_by_digits[0] += 1;
-                    break;
-                    case 2:
-                    num_by_digits[1] += 1;
-                    break;
-                    case 3:
-                    num_by_digits[2] += 1;
-                    break;
-                    case 4:
-                    num_by_digits[3] += 1;
-                    break;
-                    case 5:
-                    num_by_digits[4] += 1;
-                    break;
-                }
-
+                nrDigitsResult(nr_digits, num_by_digits);
             }
 
             int write_number = write(fd_p2_p1[1], num_by_digits, sizeof(num_by_digits));
@@ -229,6 +229,7 @@ int main() {
     return EXIT_SUCCESS;
 }
 
+// Find the number of digits of the given integer
 int nrDigits(int num) {
     if (num == 0) return 1;
 
@@ -241,6 +242,28 @@ int nrDigits(int num) {
     return nr_digits;
 }
 
+// Categorizes the numbers by digits.
+void nrDigitsResult(int nr_digits, int* num_by_digits) {
+    switch(nr_digits) {
+        case 1:
+        num_by_digits[0] += 1;
+        break;
+        case 2:
+        num_by_digits[1] += 1;
+        break;
+        case 3:
+        num_by_digits[2] += 1;
+        break;
+        case 4:
+        num_by_digits[3] += 1;
+        break;
+        case 5:
+        num_by_digits[4] += 1;
+        break;
+    }
+}
+
+// Calculates if the given number is prime or not
 int isPrime(int num) {
     
     if(num == 1 || num == 0) {
@@ -249,10 +272,7 @@ int isPrime(int num) {
 
     int upper_bound = num / 2;
 
-    //printf("num is: %d, upper_bound is: %d\n", num, upper_bound);
-
     for(int i = 2; i <= upper_bound; i++) {
-       // printf("i --> %d, num --> %d\n", i, num);
         if(num % i == 0) {
             return 0;
         }
@@ -261,10 +281,10 @@ int isPrime(int num) {
     return 1;
 }
 
+// Calculates the number of prime numbers
 void nrPrimes(int num, int* num_primes) {
     
     int is_num_prime = isPrime(num);
 
     *num_primes += is_num_prime;
-    //printf("num_primes --> %d\n", *num_primes);
 }
