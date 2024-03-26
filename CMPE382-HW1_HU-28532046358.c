@@ -115,6 +115,14 @@ int main() {
                 // sleep(1);
 
             }
+
+            int fd_output = open("output.txt", O_CREAT | O_WRONLY, 0644);
+
+            if(fd_output == -1) {
+                perror("P1 parent error creating the output file");
+                return EXIT_FAILURE;
+            }
+
             // Wait for P3 to finish
             waitpid(pid1, NULL, 0);
 
@@ -125,6 +133,7 @@ int main() {
 
             for(int i = 0; i < 5; i++) {
                 printf("%d digits - %d\n", (i+1), num_by_digits[i]);
+                dprintf(fd_output, "%d digits - %d\n", (i+1), num_by_digits[i]);
             }
 
             waitpid(pid2, NULL, 0);
@@ -136,6 +145,9 @@ int main() {
             
             printf("Primes - %d\n", num_primes);
             printf("Nonprimes - %d\n", num_non_primes);
+
+            dprintf(fd_output, "Primes - %d\n", num_primes);
+            dprintf(fd_output, "Nonprimes - %d\n", num_non_primes);
         }
         // In P3 second child
         else if(pid2 == 0) {

@@ -1,0 +1,7 @@
+1 digits - 0
+2 digits - 6
+3 digits - 22
+4 digits - 270
+5 digits - 702
+Primes - 117
+Nonprimes - 883
