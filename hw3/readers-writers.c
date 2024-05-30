@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
         *id = generate_n_digit_rand_num(5);
         
         if(i % 2 == 0) { // It assigns passwords to the real readers here
+            // printf("real reader creation\n");
             assign_passwd(&count, *id, &passwd_table);
             int isCreated = pthread_create(&th[i], NULL, reader, id);
             if(isCreated != 0) {
@@ -90,7 +91,8 @@ int main(int argc, char *argv[]) {
 
         }
         else {
-            int isCreated = pthread_create(&th[i], NULL, reader, NULL);
+            // printf("dummy reader creation\n");
+            int isCreated = pthread_create(&th[i], NULL, reader, id);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
@@ -112,7 +114,7 @@ int main(int argc, char *argv[]) {
 
         }
         else {
-            int isCreated = pthread_create(&th[i], NULL, writer, NULL);
+            int isCreated = pthread_create(&th[i], NULL, writer, id);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
@@ -127,6 +129,7 @@ int main(int argc, char *argv[]) {
 
 void* reader(void* args) {
     int rank = *((int*)args);
+    printf("current reader is %d\n", rank);
 
     int passwd = get_passwd(rank);
     printf("reader %d got passwd %d\n", rank, passwd);
@@ -143,11 +146,12 @@ void* writer(void* args) {
 
 // Fills up the PASSWORDS table with "num" number of 5 digit passwords for each thread
 void assign_passwd(int* num, int id, PASSWORDS* passwd_table) {
-        int pass = generate_n_digit_rand_num(5);
-        passwd_table->records[*num].th_id = id;
-        passwd_table->records[*num].passwd = pass;
-        printf("thread %d is assigned with --> %d\n", id, pass);
-        (*num)++;
+    printf("thread %d is getting assigned\n", id);
+    int pass = generate_n_digit_rand_num(5);
+    passwd_table->records[*num].th_id = id;
+    passwd_table->records[*num].passwd = pass;
+    printf("thread %d is assigned with --> %d\n", id, pass);
+    (*num)++;
 }
 
 // Generates a "digits" number of digits random integer
