@@ -5,21 +5,26 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <semaphore.h>
 
 #define BUFF_SIZE 100
 
 int *BUFFER; // The global database BUFFER
+int *valid_passwords; // PASSWORDS table
 int curr_size = 0; // The current number of elements in the BUFFER
 int count = 0; // Will be used as the current index of the "records" in the PASSWORDS table
+int idx = 0;
 
-//int *PASSWORDS; // Passwords table
+sem_t mutex;
+sem_t wrt;
+int readcount;
 
-typedef struct { // this represents a key-value pair in the passwords table. Each valid thread will have a record here.
+typedef struct { // this represents a key-value pair in the registered threads table. Each valid thread will have a record here.
     int th_id;
     int passwd;
 } record;
 
-typedef struct { // this is the PASSWORDS table. It has a record pointer to be used as an array.
+typedef struct { // this is the registered threads table. It has a record pointer to be used as an array.
     record* records;
     int size;
 } PASSWORDS;
@@ -29,7 +34,7 @@ PASSWORDS passwd_table;
 void* reader(void* args);
 void* writer(void* args);
 
-// void generate_passwords(int num, pthread_t id, PASSWORDS* passwd_table);
+void generate_passwords(int num, int *valid_passwords);
 void assign_passwd(int* num, int id, PASSWORDS* passwd_table);
 
 int get_passwd(int id); // Returns a valid passwd if the given id has a record in the PASSWORDS table
@@ -66,6 +71,12 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    valid_passwords = (int*)malloc(10 * sizeof(int));
+    if(valid_passwords == NULL) {
+        perror("Error allocating memory for the passwords table");
+        return EXIT_FAILURE;
+    }
+
     passwd_table.records = (record*)malloc(num_valid_threads * sizeof(record)); // Allocating memory for the password table.
     passwd_table.size = num_valid_threads;
 
@@ -74,25 +85,44 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    for(int i = 0; i < 10; i++) {
+        generate_passwords(10, valid_passwords);
+    }
+    for(int i = 0; i < 10; i++) {
+        printf("password[%d]: %d\n", i, valid_passwords[i]);
+    }
+
     pthread_t th[num_threads];
 
     for(int i = 0; i < (num_readers*2); i++) {
         int* id = (int*)malloc(sizeof(int));
         *id = generate_n_digit_rand_num(5);
         
+        record* rc = malloc(sizeof(record));
+        rc->th_id = *id;
+        if(rc == NULL) {
+            perror("Error allocating memory for thread record");
+            return EXIT_FAILURE;
+        }
+
         if(i % 2 == 0) { // It assigns passwords to the real readers here
             // printf("real reader creation\n");
-            assign_passwd(&count, *id, &passwd_table);
-            int isCreated = pthread_create(&th[i], NULL, reader, id);
+            //assign_passwd(&count, *id, &passwd_table);
+            rc->passwd = valid_passwords[idx];
+            printf("real reader %d created, got the passwd %d\n", rc->th_id, rc->passwd);
+            int isCreated = pthread_create(&th[i], NULL, reader, rc);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
             }
-
+            idx++;
         }
         else {
             // printf("dummy reader creation\n");
-            int isCreated = pthread_create(&th[i], NULL, reader, id);
+            int passwd = generate_n_digit_rand_num(6);
+            rc->passwd = passwd;
+            printf("dummy reader %d created, got the passwd %d\n", rc->th_id, rc->passwd);
+            int isCreated = pthread_create(&th[i], NULL, reader, rc);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
@@ -100,21 +130,35 @@ int main(int argc, char *argv[]) {
         }
     }
     for(int i = num_readers*2; i < num_threads; i++) {
-        printf("adasdasdasd\n");
+        // printf("adasdasdasd\n");
         int* id = (int*)malloc(sizeof(int));
         *id = generate_n_digit_rand_num(5);
         
-        if(i % 2 == 0) { // It assigns passwords to the real writers here
-            assign_passwd(&count, *id, &passwd_table);
-            int isCreated = pthread_create(&th[i], NULL, writer, id);
+        record* rc = malloc(sizeof(record));
+        rc->th_id = *id;
+        if(rc == NULL) {
+            perror("Error allocating memory for thread record");
+            return EXIT_FAILURE;
+        }
+
+        if(i % 2 == 0) { // It assigns passwords to the real readers here
+            // printf("real reader creation\n");
+            //assign_passwd(&count, *id, &passwd_table);
+            rc->passwd = valid_passwords[idx];
+            printf("real writer %d created, got the passwd %d\n", rc->th_id, rc->passwd);
+            int isCreated = pthread_create(&th[i], NULL, writer, rc);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
             }
-
+            idx++;
         }
         else {
-            int isCreated = pthread_create(&th[i], NULL, writer, id);
+            // printf("dummy reader creation\n");
+            int passwd = generate_n_digit_rand_num(6);
+            rc->passwd = passwd;
+            printf("dummy writer %d created, got the passwd %d\n", rc->th_id, rc->passwd);
+            int isCreated = pthread_create(&th[i], NULL, writer, rc);
             if(isCreated != 0) {
                 perror("Error creating writer threads");
                 return EXIT_FAILURE;
@@ -128,30 +172,33 @@ int main(int argc, char *argv[]) {
 }
 
 void* reader(void* args) {
-    int rank = *((int*)args);
-    printf("current reader is %d\n", rank);
+    record rc = *((record*)args);
 
-    int passwd = get_passwd(rank);
-    printf("reader %d got passwd %d\n", rank, passwd);
+    printf("reader %d got passwd %d\n", rc.th_id, rc.passwd);
 
+    int isAuthorized = access_resource(rc.passwd);
+    if(isAuthorized) {
+        printf("reader %d is authorized\n", rc.passwd);
+    }
 }
 
 void* writer(void* args) {
-    int rank = *((int*)args);
+    record rc = *((record*)args);
 
-    int passwd = get_passwd(rank);
-    printf("writer %d got passwd %d\n", rank, passwd);
+    printf("writer %d got passwd %d\n", rc.th_id, rc.passwd);
 
+    int isAuthorized = access_resource(rc.passwd);
+    if(isAuthorized) {
+        printf("reader %d is authorized\n", rc.passwd);
+    }
 }
 
 // Fills up the PASSWORDS table with "num" number of 5 digit passwords for each thread
 void assign_passwd(int* num, int id, PASSWORDS* passwd_table) {
-    printf("thread %d is getting assigned\n", id);
-    int pass = generate_n_digit_rand_num(5);
-    passwd_table->records[*num].th_id = id;
-    passwd_table->records[*num].passwd = pass;
-    printf("thread %d is assigned with --> %d\n", id, pass);
-    (*num)++;
+    // printf("thread %d is getting assigned\n", id);
+    // passwd_table->records[*num].th_id = id;
+    // printf("thread %d is assigned with --> %d\n", id);
+    // (*num)++;
 }
 
 // Generates a "digits" number of digits random integer
@@ -184,11 +231,26 @@ int get_passwd(int id) {
     return -1;
 }
 
+// int access_resource(int passwd) {
+//     for(int i = 0; i < passwd_table.size; i++) {
+//         if(passwd == passwd_table.records[i].passwd) {
+//             return 1;
+//         }
+//     }
+//     return -1;
+// }
 int access_resource(int passwd) {
-    for(int i = 0; i < passwd_table.size; i++) {
-        if(passwd == passwd_table.records[i].passwd) {
+    for(int i = 0; i < 10; i++) {
+        if(passwd == valid_passwords[i]) {
             return 1;
         }
     }
     return -1;
+}
+
+void generate_passwords(int num, int *valid_passwords) {
+    for(int i = 0; i < num; i++) {
+        int passwd = generate_n_digit_rand_num(6);
+        valid_passwords[i] = passwd;
+    }
 }
