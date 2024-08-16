@@ -6,9 +6,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <dirent.h>    // Include for directory handling
-#include <string.h>    // Include for string manipulation
-#include <errno.h>     // Include for error handling
+#include <dirent.h>
+#include <string.h>
+#include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-        // Cleanup
+    // Cleanup
     for (int i = 0; i < file_count; i++) {
         close(file_descriptors[i]); // Close all file descriptors
         free(file_names[i]);
